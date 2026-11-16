@@ -62,6 +62,11 @@
 		print((text == null ? "" : String(text)) + "\n");
 	}
 
+	function printNotice(message) {
+		println("");
+		println("*** " + message + " ***");
+	}
+
 	function focusInput() {
 		if (!inputEl.disabled) inputEl.focus();
 	}
@@ -347,7 +352,7 @@
 	function playDraw() {
 		if (!game.stock.length) {
 			if (!game.waste.length) {
-				println("There are no cards left to draw.");
+				printNotice("There are no cards left to draw.");
 				showBoardAndPrompt();
 				return;
 			}
@@ -451,8 +456,7 @@
 		}
 		var card = parseCardToken(text);
 		if (card == null) {
-			print("Invalid input. ");
-			println("Please enter a card that can be moved.");
+			printNotice("Invalid input. Please enter a card that can be moved.");
 			if (fromShortcut) {
 				showBoardAndPrompt();
 				return;
@@ -463,12 +467,10 @@
 		}
 		var loc = locate(card);
 		if (!loc) {
-			print(bareName(card) + " cannot be moved ");
-			if (mode === 2) {
-				println(pile > 0 ? "to tableau pile " + pile + "." : "to a tableau pile.");
-			} else {
-				println("to a foundation stack.");
-			}
+			var dest = mode === 2
+				? (pile > 0 ? "to tableau pile " + pile + "." : "to a tableau pile.")
+				: "to a foundation stack.";
+			printNotice(bareName(card) + " cannot be moved " + dest);
 			println("Please enter a card that can be moved.");
 			if (fromShortcut) {
 				showBoardAndPrompt();
@@ -480,12 +482,12 @@
 		}
 		if (mode === 3) {
 			if (!S.canFound(game, card) || (loc.from !== S.WASTE && loc.from === S.FOUND)) {
-				println(bareName(card) + " could not be moved to foundation stack.");
+				printNotice(bareName(card) + " could not be moved to foundation stack.");
 				showBoardAndPrompt();
 				return;
 			}
 			if (loc.from === S.FOUND) {
-				println(bareName(card) + " could not be moved to foundation stack.");
+				printNotice(bareName(card) + " could not be moved to foundation stack.");
 				showBoardAndPrompt();
 				return;
 			}
@@ -521,13 +523,15 @@
 				return;
 			}
 			if (!/^\d+$/.test(pile)) {
-				println("Enter a number from 1-7.\n");
+				printNotice("Enter a number from 1-7.");
+				println("");
 				promptForPile(card, loc);
 				return;
 			}
 			var n = parseInt(pile, 10);
 			if (n < 1 || n > 7) {
-				println("Enter a number from 1-7.\n");
+				printNotice("Enter a number from 1-7.");
+				println("");
 				promptForPile(card, loc);
 				return;
 			}
@@ -537,7 +541,7 @@
 
 	function moveToPile(card, loc, dest) {
 		if (!S.canPlace(game, card, dest)) {
-			println(bareName(card) + " cannot be placed in pile " + (dest + 1) + ".");
+			printNotice(bareName(card) + " cannot be placed in pile " + (dest + 1) + ".");
 			showBoardAndPrompt();
 			return;
 		}

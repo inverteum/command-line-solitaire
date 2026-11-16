@@ -325,6 +325,11 @@ public class Game {
 	 */
 	static boolean revealHiddenTableau = false;
 
+	/** Print a rejected move or similar result so it stands out from the prompt. */
+	static void printNotice(String message) {
+		System.out.println("*** " + message + " ***");
+	}
+
 	static void print(int mode, boolean AI) {
 		// Outputs the Solitaire tableau layout
 
@@ -723,7 +728,7 @@ public class Game {
 				// pile, prevent the user from drawing more cards
 				// (Requirement 3.3.2)
 				if (drawnCards.empty()) {
-					System.out.println("There are no cards left to draw.");
+					printNotice("There are no cards left to draw.");
 					print(0, AI);
 					return;
 				}
@@ -849,8 +854,7 @@ public class Game {
 				 */
 				else {
 					String cardOutput = removeUnnecessarySpace(cards[card]);
-					System.out.println(cardOutput
-							+ " could not be moved to foundation stack.");
+					printNotice(cardOutput + " could not be moved to foundation stack.");
 				}
 			}
 
@@ -1211,17 +1215,18 @@ public class Game {
 				 */				
 				else {
 					if (isCard(pickedCard)) {
-						System.out.print(removeUnnecessarySpace(pickedCard) + " cannot be moved ");
-	
 						// change the message depending on if the user is trying to move
 						// a card to a tableau pile or foundation stack
+						String dest = "";
 						if (mode == 2) {
-							System.out.println("to tableau pile " + (pile + 1) + ".");
+							dest = "to tableau pile " + (pile + 1) + ".";
 						} else if (mode == 3) {
-							System.out.println("to a foundation stack.");
+							dest = "to a foundation stack.";
 						}
+						printNotice(removeUnnecessarySpace(pickedCard) + " cannot be moved " + dest);
+						System.out.println("Please enter a card that can be moved.");
 					} else {
-						System.out.print("Invalid input. ");
+						printNotice("Invalid input. Please enter a card that can be moved.");
 					}
 				}
 			}
@@ -1230,11 +1235,8 @@ public class Game {
 			// invalid
 			// Reprompt user
 			else {
-				System.out
-						.print("Invalid input. ");
+				printNotice("Invalid input. Please enter a card that can be moved.");
 			}
-			
-			System.out.println("Please enter a card that can be moved.");
 			
 			if (shortcutCard != null) {
 				return null;
@@ -1319,7 +1321,8 @@ public class Game {
 			}
 			// Catch non-numeric input and re-prompt user
 			catch (NumberFormatException nfe) {
-				System.out.println("Enter a number from 1-7.\n");
+				printNotice("Enter a number from 1-7.");
+				System.out.println();
 				continue;
 			}
 
@@ -1328,7 +1331,8 @@ public class Game {
 
 			// If entered number is out of range, re-prompt user
 			if (pickedPile < 0 || pickedPile > 6) {
-				System.out.println("Enter a number from 1-7.\n");
+				printNotice("Enter a number from 1-7.");
+				System.out.println();
 				continue;
 			}
 
@@ -1352,7 +1356,7 @@ public class Game {
 		if (!canMove(pickedCard, pickedPile)) {
 			// Notify user
 			String cardOutput = removeUnnecessarySpace(cards[pickedCard]);
-			System.out.println(cardOutput + " cannot be placed in pile "
+			printNotice(cardOutput + " cannot be placed in pile "
 					+ (pickedPile + 1) + ".");
 
 			// Continue game
