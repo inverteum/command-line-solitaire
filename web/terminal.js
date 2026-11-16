@@ -379,13 +379,19 @@
 
 	function playHint() {
 		if (S.won(game)) {
-			println("Autocomplete will finish the game.");
-		} else {
-			var move = S.heuristic(game);
-			if (!move) println("This is going to be a hard game.");
-			else println(S.describe(game, move) + ".");
+			printNotice("Hint: Autocomplete will finish the game.");
+			showBoardAndPrompt();
+			return;
 		}
-		showBoardAndPrompt();
+		println("Looking up a hint...");
+		setInputEnabled(false);
+		setTimeout(function () {
+			var move = S.strongChoose(game, Math.random);
+			if (!move) printNotice("This is going to be a hard game.");
+			else printNotice("Hint: " + S.describe(game, move) + ".");
+			setInputEnabled(true);
+			showBoardAndPrompt();
+		}, 0);
 	}
 
 	function confirmAction(action) {

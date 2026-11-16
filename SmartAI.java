@@ -124,9 +124,9 @@ final class SmartAI {
 		Klondike g = Klondike.fromGame();
 		Klondike.Move move = choose(g);
 		if (move == null) {
-			System.out.println("This is going to be a hard game.");
+			Game.printNotice("This is going to be a hard game.");
 		} else {
-			System.out.println(g.describe(move) + ".");
+			Game.printNotice("Hint: " + g.describe(move) + ".");
 		}
 		Game.print(0, false);
 	}
