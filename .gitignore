@@ -1,0 +1,3 @@
+*.class
+.scores.xls
+.DS_Store

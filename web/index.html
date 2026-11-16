@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Command-line Solitaire (1-card draw). Play the original keyboard game in the browser.">
+  <title>Command Line Solitaire</title>
+  <link rel="stylesheet" href="terminal.css">
+</head>
+<body>
+  <div class="page">
+    <header class="intro">
+      <h1>Command Line Solitaire</h1>
+      <p>The original command-line game, in the browser. Type commands the same way you would in the Java program — there is no clickable board on this page.</p>
+    </header>
+
+    <div class="terminal" id="terminal" tabindex="0">
+      <pre class="output" id="output" aria-live="polite"></pre>
+      <form id="prompt-form" autocomplete="off">
+        <label class="prompt-line">
+          <span class="prompt-mark" aria-hidden="true">&gt;</span>
+          <input id="prompt" type="text" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" aria-label="Command">
+        </label>
+      </form>
+    </div>
+
+    <section class="modes" aria-labelledby="modes-heading">
+      <h2 id="modes-heading">Computer players</h2>
+      <p>Win rates are completed wins on this 1-card-draw Solitaire ruleset, not generic Klondike. The test used 1,000 random deals, seeds 1–1000, shuffled with Java’s Random.</p>
+      <p><strong>Player</strong> 56.8% — 568 / 1,000 games. Player cannot see cards that are not flipped over. It tries several possible layouts for the hidden cards and picks the move that wins most often.</p>
+      <p><strong>Warp</strong> 80.8% — 808 / 1,000 games. Warp can see the face-down cards and hidden stock, and it uses that knowledge to pick a move. While Warp is playing, face-down tableau cards are shown.</p>
+      <p>The original hint AI, a baseline that is not one of these two modes, won 386 / 1,000 games (38.6%). Eight of those deals crashed and were counted as losses.</p>
+      <p>In the terminal, type <code>player</code> or <code>warp</code>. <code>AI</code> is a fast Player, and <code>START</code> is a slow Player. Hint stays with the Player.</p>
+    </section>
+  </div>
+  <script src="engine.js"></script>
+  <script src="solver.js"></script>
+  <script src="terminal.js"></script>
+</body>
+</html>

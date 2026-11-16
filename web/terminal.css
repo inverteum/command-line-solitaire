@@ -1,0 +1,133 @@
+/* Command-line Solitaire. No build step, no dependencies. */
+
+:root {
+  --bg: #11110f;
+  --paper: #0c0c0a;
+  --ink: #d8d2c6;
+  --ink-soft: #9a9386;
+  --green: #b6e2a8;
+  --rule: #2a2925;
+  --accent: #e0a36a;
+  --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: "Cascadia Mono", "SF Mono", "ui-monospace", Menlo, Consolas, monospace;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.page {
+  width: min(920px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 2rem 0 3rem;
+}
+
+.intro h1 {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  letter-spacing: -0.02em;
+}
+
+.intro p {
+  margin: 0 0 1.25rem;
+  color: var(--ink-soft);
+  max-width: 42rem;
+}
+
+.terminal {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1rem 1.1rem 0.85rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  font-family: var(--mono);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: var(--green);
+  cursor: text;
+}
+
+.output {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-height: 16rem;
+  max-height: min(70vh, 44rem);
+  overflow: auto;
+}
+
+.prompt-line {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.55rem;
+}
+
+.prompt-mark {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+#prompt {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: var(--green);
+  background: transparent;
+  border: 0;
+  outline: none;
+  padding: 0.15rem 0;
+}
+
+#prompt:disabled {
+  opacity: 0.45;
+}
+
+.modes {
+  margin-top: 2rem;
+  color: var(--ink);
+}
+
+.modes h2 {
+  margin: 0 0 0.6rem;
+  font-size: 1.15rem;
+}
+
+.modes p {
+  margin: 0 0 0.85rem;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
+.modes code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .page {
+    width: min(920px, calc(100% - 1.25rem));
+    padding-top: 1.25rem;
+  }
+
+  .terminal {
+    font-size: 0.8rem;
+  }
+}
