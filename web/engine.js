@@ -338,29 +338,40 @@
 		return "Move " + cardName(g.piles[m.from][m.index]) + " to pile " + (m.to + 1);
 	}
 
+	function pickedCard(g, from, index) {
+		if (from === WASTE) return wasteTop(g);
+		if (from === FOUND) return index * 13 + g.found[index] - 1;
+		return g.piles[from][index];
+	}
+
+	/** Legal tableau destinations for a picked card, leftmost first. */
+	function tableauDestinations(g, from, index) {
+		var card = pickedCard(g, from, index);
+		var dests = [];
+		var source = from >= 0 ? from : -1;
+		for (var col = 0; col < 7; col++) {
+			if (col === source) continue;
+			if (canPlace(g, card, col)) dests.push(col);
+		}
+		return dests;
+	}
+
 	/**
-	 * Destination for a picked card. Foundation wins when the card is free
-	 * (waste top, or the exposed end of a tableau pile). Otherwise the leftmost
-	 * other tableau pile wins. Returns a move, or null when nothing is legal.
+	 * Destination for a picked card when no choice is needed. Foundation wins
+	 * when the card is free (waste top, or the exposed end of a tableau pile).
+	 * Otherwise the leftmost other tableau pile wins. Returns a move, or null
+	 * when nothing is legal.
 	 */
 	function autoDestination(g, from, index) {
-		var card;
-		if (from === WASTE) card = wasteTop(g);
-		else if (from === FOUND) card = index * 13 + g.found[index] - 1;
-		else card = g.piles[from][index];
+		var card = pickedCard(g, from, index);
 		var free = from === WASTE || (from !== FOUND && g.piles[from].length > 0
 			&& g.piles[from][g.piles[from].length - 1] === card);
 		if (free && canFound(g, card)) {
 			return { kind: TO_FOUND, from: from, index: index, to: suit(card) };
 		}
-		var source = from >= 0 ? from : -1;
-		for (var col = 0; col < 7; col++) {
-			if (col === source) continue;
-			if (canPlace(g, card, col)) {
-				return { kind: TO_TAB, from: from, index: index, to: col };
-			}
-		}
-		return null;
+		var dests = tableauDestinations(g, from, index);
+		if (!dests.length) return null;
+		return { kind: TO_TAB, from: from, index: index, to: dests[0] };
 	}
 
 	function describePick(g, m) {
@@ -463,6 +474,7 @@
 		choose: choose,
 		describe: describe,
 		describePick: describePick,
+		tableauDestinations: tableauDestinations,
 		autoDestination: autoDestination,
 		sameMove: sameMove,
 		play: play,

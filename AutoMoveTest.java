@@ -8,14 +8,15 @@ import java.util.Scanner;
 import java.util.Stack;
 
 /**
- * Picking a card moves it. Foundation builds win over tableau builds. Among
- * tableau piles, the leftmost legal pile is used. A face-up run moves whole.
+ * Picking a card moves it. Foundation builds win over tableau builds. If only
+ * one tableau pile can take the card, it moves there. If more than one pile
+ * can take it, the player is asked which pile. A face-up run moves whole.
  */
 public class AutoMoveTest {
 	public static void main(String[] args) {
 		testFoundationPreferredOverTableau();
 		testTableauMove();
-		testLeftmostTableau();
+		testAsksWhenMultipleTableauPiles();
 		testNoMoveLeavesBoard();
 		testSequenceMove();
 		testSequenceStaysOffFoundation();
@@ -69,21 +70,75 @@ public class AutoMoveTest {
 		lacks(out, "Which pile");
 	}
 
-	/** 6S fits pile 3 (7H) and pile 5 (7D). The leftmost pile is used. */
-	static void testLeftmostTableau() {
+	/**
+	 * 6S fits pile 3 (7H) and pile 5 (7D). The player is asked which pile.
+	 * The example in the prompt is the leftmost legal pile.
+	 */
+	static void testAsksWhenMultipleTableauPiles() {
+		String prompt = "Which pile, i.e. \"3\"? Type \"c\" to cancel.";
+
 		reset();
 		col(0, 5);
 		col(2, 32);
 		col(4, 45);
 		up(5, 32, 45);
-		runMove(new Runnable() {
-			public void run() {
-				Game.autoMove(5, 0);
-			}
-		});
+		Game.drawPile.push(51);
+		String chosen = playScript("2\n6S\n5\n");
+		has(chosen, prompt);
+		has(chosen, "6S moved successfully.");
+		expect(0);
+		expect(2, 32);
+		expect(4, 45, 5);
+
+		reset();
+		col(0, 5);
+		col(2, 32);
+		col(4, 45);
+		up(5, 32, 45);
+		Game.drawPile.push(51);
+		String left = playScript("2\n6S\n3\n");
+		has(left, prompt);
 		expect(0);
 		expect(2, 32, 5);
 		expect(4, 45);
+
+		reset();
+		col(0, 5);
+		col(2, 32);
+		col(4, 45);
+		up(5, 32, 45);
+		Game.drawPile.push(51);
+		String invalid = playScript("2\n6S\n2\n0\n8\nQH\n5\n");
+		has(invalid, "Invalid input. Please enter a pile that the card can be moved to.");
+		expect(0);
+		expect(2, 32);
+		expect(4, 45, 5);
+
+		reset();
+		col(0, 5);
+		col(2, 32);
+		col(4, 45);
+		up(5, 32, 45);
+		Game.drawPile.push(51);
+		String cancelled = playScript("2\n6S\nc\n");
+		has(cancelled, "You chose not to move the card.");
+		lacks(cancelled, "moved successfully.");
+		expect(0, 5);
+		expect(2, 32);
+		expect(4, 45);
+
+		reset();
+		col(0, 5);
+		col(2, 32);
+		col(4, 45);
+		up(5, 32, 45);
+		Game.drawPile.push(51);
+		String shortcut = playScript("26S\n5\n");
+		lacks(shortcut, "Which card");
+		has(shortcut, prompt);
+		expect(0);
+		expect(2, 32);
+		expect(4, 45, 5);
 	}
 
 	static void testNoMoveLeavesBoard() {
