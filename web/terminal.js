@@ -184,9 +184,8 @@
 	}
 
 	function printMenu() {
-		var line = "Would you like to draw, or move a card to a tableau pile or to a foundation \nstack? 1) draw 2) tableau 3) foundation 4) hint 5) exit 6) restart";
-		if (game.waste.length) line += " 7) undo last draw";
-		println(line);
+		println("Would you like to draw or pick a card?");
+		println("1) draw 2) pick card 3) hint 4) exit 5) restart");
 		println("Computer play: \"player\" or \"warp\".");
 		ask(onMain);
 	}
@@ -297,7 +296,6 @@
 			return;
 		}
 
-		var upperLimit = game.waste.length ? 7 : 6;
 		var slow = choiceStr.endsWith(" SLOW");
 		var modeName = slow ? choiceStr.slice(0, choiceStr.length - 5).trim() : choiceStr;
 
@@ -311,42 +309,31 @@
 		}
 
 		try {
-			if (choiceStr.length > 1 && choiceStr.charAt(0) === "3" && isCardToken(choiceStr.slice(1))) {
+			if (choiceStr.length > 1 && choiceStr.charAt(0) === "2" && isCardToken(choiceStr.slice(1).trim())) {
 				println("");
-				playFoundation(choiceStr.slice(1));
+				playPick(choiceStr.slice(1).trim());
 				return;
 			}
-			var lastIndex = choiceStr.length - 1;
-			if (lastIndex > 0 && choiceStr.charAt(0) === "2" && isCardToken(choiceStr.slice(1, lastIndex))) {
-				var pile = parseInt(choiceStr.charAt(lastIndex), 10);
-				if (pile >= 1 && pile <= 7) {
-					println("");
-					playTableau(choiceStr.slice(1, lastIndex), pile);
-					return;
-				}
-			}
 			var choice = parseInt(choiceStr, 10);
-			if (String(choice) !== choiceStr || choice < 1 || choice > upperLimit) {
-				println("Please enter a number from 1-" + upperLimit + ", or type player or warp.\n");
+			if (String(choice) !== choiceStr || choice < 1 || choice > 5) {
+				println("Please enter a number from 1-5, or type player or warp.\n");
 				ask(onMain);
 				return;
 			}
 			println("");
 			playChoice(choice);
 		} catch (err) {
-			println("Please enter a number from 1-" + upperLimit + ", or type player or warp.\n");
+			println("Please enter a number from 1-5, or type player or warp.\n");
 			ask(onMain);
 		}
 	}
 
 	function playChoice(choice) {
 		if (choice === 1) return playDraw();
-		if (choice === 2) return playTableau(null, -1);
-		if (choice === 3) return playFoundation(null);
-		if (choice === 4) return playHint();
-		if (choice === 5) return confirmAction("exit");
-		if (choice === 6) return confirmAction("restart");
-		if (choice === 7) return playUndo();
+		if (choice === 2) return playPick(null);
+		if (choice === 3) return playHint();
+		if (choice === 4) return confirmAction("exit");
+		if (choice === 5) return confirmAction("restart");
 	}
 
 	function playDraw() {
@@ -388,7 +375,7 @@
 		setTimeout(function () {
 			var move = S.strongChoose(game, Math.random);
 			if (!move) printNotice("This is going to be a hard game.");
-			else printNotice("Hint: " + S.describe(game, move) + ".");
+			else printNotice("Hint: " + S.describePick(game, move) + ".");
 			setInputEnabled(true);
 			showBoardAndPrompt();
 		}, 0);
@@ -442,17 +429,18 @@
 		});
 	}
 
-	function promptForCard(mode, shortcut, pile) {
+	function playPick(shortcut) {
 		if (shortcut != null) {
-			return handleCardInput(mode, shortcut, pile, true);
+			handleCardInput(shortcut, true);
+			return;
 		}
 		println("Which card, i.e. \"" + firstExampleCard() + "\"? Type \"c\" to cancel.");
 		ask(function (raw) {
-			handleCardInput(mode, raw, pile, false);
+			handleCardInput(raw, false);
 		});
 	}
 
-	function handleCardInput(mode, raw, pile, fromShortcut) {
+	function handleCardInput(raw, fromShortcut) {
 		var text = String(raw || "").trim().toUpperCase();
 		if (text === "C") {
 			println("You chose not to pick a card.");
@@ -468,96 +456,41 @@
 				return;
 			}
 			println("");
-			promptForCard(mode, null, pile);
+			playPick(null);
 			return;
 		}
 		var loc = locate(card);
 		if (!loc) {
-			var dest = mode === 2
-				? (pile > 0 ? "to tableau pile " + pile + "." : "to a tableau pile.")
-				: "to a foundation stack.";
-			printNotice(bareName(card) + " cannot be moved " + dest);
-			println("Please enter a card that can be moved.");
-			if (fromShortcut) {
-				showBoardAndPrompt();
-				return;
-			}
-			println("");
-			promptForCard(mode, null, pile);
+			printNotice(bareName(card) + " cannot be moved.");
+			showBoardAndPrompt();
 			return;
 		}
-		if (mode === 3) {
-			if (!S.canFound(game, card) || (loc.from !== S.WASTE && loc.from === S.FOUND)) {
-				printNotice(bareName(card) + " could not be moved to foundation stack.");
-				showBoardAndPrompt();
-				return;
-			}
-			if (loc.from === S.FOUND) {
-				printNotice(bareName(card) + " could not be moved to foundation stack.");
-				showBoardAndPrompt();
-				return;
-			}
-			S.apply(game, { kind: S.TO_FOUND, from: loc.from, index: loc.index, to: -1 });
+		autoMoveCard(card, loc);
+	}
+
+	/**
+	 * Move a picked card. Foundation wins. Otherwise the leftmost other tableau
+	 * pile wins, and a face-up run moves together. Nothing changes when no
+	 * legal move exists.
+	 */
+	function autoMoveCard(card, loc) {
+		var move = S.autoDestination(game, loc.from, loc.index);
+		if (!move) {
+			printNotice(bareName(card) + " cannot be moved.");
+			showBoardAndPrompt();
+			return;
+		}
+		S.apply(game, move);
+		if (move.kind === S.TO_FOUND) {
 			println(bareName(card) + " moved to foundation stack. Points +10.");
-			showBoardAndPrompt();
-			return;
-		}
-		if (pile > 0) {
-			moveToPile(card, loc, pile - 1);
-			return;
-		}
-		print(formatBoard());
-		promptForPile(card, loc);
-	}
-
-	function playTableau(shortcut, pile) {
-		promptForCard(2, shortcut, pile);
-	}
-
-	function playFoundation(shortcut) {
-		promptForCard(3, shortcut, -1);
-	}
-
-	function promptForPile(card, loc) {
-		println("Which pile do you want to move " + bareName(card) + " to? Choose a pile from 1-7.");
-		println("Type \"c\" to cancel.");
-		ask(function (raw) {
-			var pile = String(raw || "").trim().toLowerCase();
-			if (pile === "c") {
-				println("You chose to cancel.");
-				showBoardAndPrompt();
-				return;
+		} else {
+			if (loc.kind === 1) {
+				println("Moved " + bareName(card) + " from draw pile to tableau. Points +5.");
+			} else if (loc.kind === 2) {
+				println("Moved " + paddedName(card) + " from foundation stack to tableau. Points -15.");
 			}
-			if (!/^\d+$/.test(pile)) {
-				printNotice("Enter a number from 1-7.");
-				println("");
-				promptForPile(card, loc);
-				return;
-			}
-			var n = parseInt(pile, 10);
-			if (n < 1 || n > 7) {
-				printNotice("Enter a number from 1-7.");
-				println("");
-				promptForPile(card, loc);
-				return;
-			}
-			moveToPile(card, loc, n - 1);
-		});
-	}
-
-	function moveToPile(card, loc, dest) {
-		if (!S.canPlace(game, card, dest)) {
-			printNotice(bareName(card) + " cannot be placed in pile " + (dest + 1) + ".");
-			showBoardAndPrompt();
-			return;
+			println(bareName(card) + " moved successfully. ");
 		}
-		S.apply(game, { kind: S.TO_TAB, from: loc.from, index: loc.index, to: dest });
-		if (loc.kind === 1) {
-			println("Moved " + bareName(card) + " from draw pile to tableau. Points +5.");
-		} else if (loc.kind === 2) {
-			println("Moved " + paddedName(card) + " from foundation stack to tableau. Points -15.");
-		}
-		println(bareName(card) + " moved successfully. ");
 		showBoardAndPrompt();
 	}
 

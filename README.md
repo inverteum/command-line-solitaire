@@ -6,10 +6,16 @@ Play the browser version at [inverteum.com/coding/solitaire-command-line](https:
 
 Cards are written with the value first and the suit last: H heart, C club, S spade, D diamond. For example, `10S` is the 10 of spades, and `QH` is the queen of hearts. Commands are not case-sensitive.
 
-* Draw cards, move cards to a tableau pile or a foundation stack, or undo a draw
-* Choose a card by entering its name, for example `AD` for the ace of diamonds
+The prompt is:
+
+```
+Would you like to draw or pick a card?
+1) draw 2) pick card 3) hint 4) exit 5) restart
+```
+
+* Draw a card, or pick one by name, for example `AD` for the ace of diamonds. You do not name a destination. A picked card moves to the foundation when that build is legal. Otherwise it moves to the leftmost tableau pile that can take it. A face-up run moves together.
 * Score changes with the usual actions, such as moving a card to a foundation, restarting the draw pile, or revealing a tableau card
-* Hint, for example `Move 6S to pile 7`
+* Hint names the card to pick, for example `Pick 6S`, or tells you to draw
 * Autocomplete when the game is clearly won (all tableau cards are face up, and the draw and waste piles are empty)
 * A top-10 score list, stored in a local Excel file (`.scores.xls`) with Apache POI
 

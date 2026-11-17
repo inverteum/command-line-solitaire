@@ -693,6 +693,27 @@ final class Klondike {
 		return "Move " + name(pile[m.from][m.index]) + " to pile " + (m.to + 1);
 	}
 
+	/**
+	 * Hint text for the player. Names the card to pick, or a draw. It does not
+	 * ask the player to choose a destination.
+	 */
+	String describePick(Move m) {
+		if (m.kind == DRAW || m.kind == AUTO) {
+			return describe(m);
+		}
+		int card;
+		if (m.kind == TO_FOUND) {
+			card = m.from == WASTE ? wasteTop() : tail(m.from);
+		} else if (m.from == WASTE) {
+			card = wasteTop();
+		} else if (m.from == FOUND) {
+			card = m.index * 13 + (found[m.index] - 1);
+		} else {
+			card = pile[m.from][m.index];
+		}
+		return "Pick " + name(card);
+	}
+
 	void checkInvariants() {
 		boolean[] seen = new boolean[52];
 		for (int c = 0; c < 7; c++) {

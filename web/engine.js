@@ -338,6 +338,42 @@
 		return "Move " + cardName(g.piles[m.from][m.index]) + " to pile " + (m.to + 1);
 	}
 
+	/**
+	 * Destination for a picked card. Foundation wins when the card is free
+	 * (waste top, or the exposed end of a tableau pile). Otherwise the leftmost
+	 * other tableau pile wins. Returns a move, or null when nothing is legal.
+	 */
+	function autoDestination(g, from, index) {
+		var card;
+		if (from === WASTE) card = wasteTop(g);
+		else if (from === FOUND) card = index * 13 + g.found[index] - 1;
+		else card = g.piles[from][index];
+		var free = from === WASTE || (from !== FOUND && g.piles[from].length > 0
+			&& g.piles[from][g.piles[from].length - 1] === card);
+		if (free && canFound(g, card)) {
+			return { kind: TO_FOUND, from: from, index: index, to: suit(card) };
+		}
+		var source = from >= 0 ? from : -1;
+		for (var col = 0; col < 7; col++) {
+			if (col === source) continue;
+			if (canPlace(g, card, col)) {
+				return { kind: TO_TAB, from: from, index: index, to: col };
+			}
+		}
+		return null;
+	}
+
+	function describePick(g, m) {
+		if (!m) return "No legal move";
+		if (m.kind === DRAW || m.kind === AUTO) return describe(g, m);
+		var card;
+		if (m.kind === TO_FOUND) card = m.from === WASTE ? wasteTop(g) : tail(g, m.from);
+		else if (m.from === WASTE) card = wasteTop(g);
+		else if (m.from === FOUND) card = m.index * 13 + g.found[m.index] - 1;
+		else card = g.piles[m.from][m.index];
+		return "Pick " + cardName(card);
+	}
+
 	function sameMove(a, b) {
 		return !!a && !!b && a.kind === b.kind && a.from === b.from && a.index === b.index && a.to === b.to;
 	}
@@ -426,6 +462,8 @@
 		undoDraw: undoDraw,
 		choose: choose,
 		describe: describe,
+		describePick: describePick,
+		autoDestination: autoDestination,
 		sameMove: sameMove,
 		play: play,
 		check: check,

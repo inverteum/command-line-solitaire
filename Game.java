@@ -310,18 +310,8 @@ public class Game {
 	}
 
 	/*
-	 * print() is called from: 
-	 * - startGame(): to continue the game 
-	 * - playGame(choice): 
-	 *   - when the user chooses not to restart the draw pile (choice == 1) 
-	 *   - chooses to move a card between tableau piles (choice == 2): 
-	 *       - print() called with mode 1 (only outputs the tableau pile) 
-	 *         to make it easy for the user to choose which pile to move a card to 
-	 *   - chooses to move a card to a foundation stack (choice == 3) 
-	 * - pickPile(): when the user chooses not to pick a tableau pile,
-	 *   chooses to move the card to a tableau pile that the card cannot be moved to 
-	 * - move(): to continue the game 
-	 * - draw(): to continue the game
+	 * print() shows the board and, unless mode is 1, asks for the next action.
+	 * Called from startGame(), playGame(), draw(), and the exit/restart prompt.
 	 */
 	static boolean revealHiddenTableau = false;
 
@@ -611,28 +601,17 @@ public class Game {
 	 */
 	static void play() {
 		int choice = 0;
-		int upperLimit = 6;
+		int upperLimit = 5;
 
 		/* If the user accidentally enters invalid input, the program should 
 		 * reprompt them for valid input.
 		 * (Requirement 6.1.0)
 		 */
 		do {
-			// Prompt user if they would like to 1) draw a card, 2) move a card
-			// to a pile, 3) to a foundation stack, 4) get a hint, 5) exit, or 6) restart
-			// (Requirement 5.0.0)
-			System.out.print("Would you like to draw, or move a card to a tableau pile or to a foundation \nstack? "
-					+ "1) draw 2) tableau 3) foundation 4) hint 5) exit 6) restart");
-			
-			// If a card has been drawn, allow the user to undo their last draw
-			// the user can enter 7 as well (as opposed to the previous upper
-			// limit of 6).
-			if (!drawnCards.empty()) {
-				System.out.print(" 7) undo last draw");
-				upperLimit = 7;
-			}
-			
-			System.out.println();
+			// 1) draw, 2) pick a card (destination is chosen automatically),
+			// 3) hint, 4) exit, or 5) restart (Requirement 5.0.0)
+			System.out.println("Would you like to draw or pick a card?");
+			System.out.println("1) draw 2) pick card 3) hint 4) exit 5) restart");
 			System.out.println("Computer play: \"player\" or \"warp\". Add \" slow\" to pause between moves.");
 
 			try {
@@ -654,28 +633,15 @@ public class Game {
 					SmartAI.runCli(slow, true);
 					return;
 				}
-				
-				// The first number of the input is the user's choice
-				int choiceNum = Integer.parseInt(choiceStr.substring(0, 1));
-				
-				/* For moving cards to foundation stacks, there is an 
-				 * easter egg: the user can type "310s" to move 10S to a foundation stack.
-				 */
-				if (isCard(choiceStr.substring(1)) && choiceNum == 3) {
-					System.out.println();
-					playGame(choiceNum, choiceStr.substring(1), -1, false);
-					return;
-				}
-				
-				/* For moving cards to tableau piles, there is an easter egg:
-				 * the user can type "23d4" to move 3D to tableau pile #4.
-				 */
-				int lastIndex = choiceStr.length() - 1;
-				if (lastIndex > 0 && isCard(choiceStr.substring(1, lastIndex)) && choiceNum == 2) {
-					System.out.println();
-					int pile = Integer.parseInt(choiceStr.substring(lastIndex));
-					playGame(choiceNum, choiceStr.substring(1, lastIndex), pile - 1, false);
-					return;
+
+				// "2QH" picks QH from the menu. The destination is automatic.
+				if (choiceStr.length() > 1 && choiceStr.charAt(0) == '2') {
+					String rest = choiceStr.substring(1).trim();
+					if (isCard(rest)) {
+						System.out.println();
+						playGame(2, rest, false);
+						return;
+					}
 				}
 				
 				choice = Integer.parseInt(choiceStr);
@@ -699,7 +665,7 @@ public class Game {
 
 		// Call a different playGame method with the user's choice as a
 		// parameter
-		playGame(choice, null, -1, false);
+		playGame(choice, null, false);
 	}
 
 	/*
@@ -709,7 +675,7 @@ public class Game {
 	 * - print(): when the user has won and they choose to leave the game. 
 	 *   The exit option (choice == 4) is called.
 	 */
-	static void playGame(int choice, String shortcutCard, int pile, boolean AI) {
+	static void playGame(int choice, String shortcutCard, boolean AI) {
 		int AInum = 0;
 		if (AI) {
 			AInum = 1;
@@ -798,72 +764,20 @@ public class Game {
 			}
 		}
 
-		// User chooses to move a card between tableau piles
+		// User picks a card. A legal foundation build is taken when one exists.
+		// Otherwise the card moves to the leftmost legal tableau pile.
 		else if (choice == 2) {
-			// pickACard() prompts user to pick a card
-			// 2 (parameter) refers to moving a card between piles
-			// method returns the card the user picked and whether 
-			// or not that card was drawn
-			int[] result = pickACard(2, shortcutCard, pile);
+			int[] result = pickACard(shortcutCard);
 
-			// If the user chooses a card,
-			// output the tableau pile and
-			// ask the user to choose which pile to place the card in
 			if (result != null) {
-				int card = result[0];
-				int drawnFoundation = result[1];
-				
-				// User has not specified which pile they want to choose yet
-				if (pile < 0) {
-					print(1, AI);
-				}
-				
-				pickPile(card, drawnFoundation, pile);
+				autoMove(result[0], result[1]);
 			}
 
-			print(0, AI);
-		}
-
-		// User chooses to move a card to a foundation stack
-		else if (choice == 3) {
-			// pickACard() prompts user to pick a card
-			// 3 (parameter) refers to moving a card to a foundation stack
-			int[] result = pickACard(3, shortcutCard, pile);
-
-			// If the user chooses a card,
-			// check if that card can be moved to a foundation
-			// stack.
-			// If so, moves the card.
-			// If not, program outputs that the card cannot be moved.
-			if (result != null) {
-				int card = result[0];
-				int drawnFoundation = result[1];
-
-				/* If a valid move is entered, the cards are moved, 
-				 * the new layout is printed on the screen, and the 
-				 * user is prompted for the next move. 
-				 * (Requirement 5.2.0)
-				 */
-				if (canMoveToFoundation(card)) {
-					moveToFoundation(card, drawnFoundation);
-				} 
-				
-				/* If an invalid move is attempted, the user is notified 
-				 * and returned to the main Solitaire prompt.
-				 * (Requirement 5.3.0)
-				 */
-				else {
-					String cardOutput = removeUnnecessarySpace(cards[card]);
-					printNotice(cardOutput + " could not be moved to foundation stack.");
-				}
-			}
-
-			// Continue the game
 			print(0, AI);
 		}
 		
-		// User asks for hint. The suggestion is the improved player's next legal move.
-		else if (choice == 4) {
+		// User asks for hint. The suggestion names a card to pick, or a draw.
+		else if (choice == 3) {
 			SmartAI.hintCli();
 			return;
 		}
@@ -872,10 +786,10 @@ public class Game {
 		 * (Requirement 6.3.0)
 		 */
 		// User chooses to exit
-		else if (choice == 5) {
+		else if (choice == 4) {
 			// Make sure user did not accidentally chose to exit
 			// (Requirement 6.2.0)
-			int areYouSure = areYouSure(choice - 4);
+			int areYouSure = areYouSure(1);
 			
 			// If user wants to exit, end the game.	
 			if (areYouSure == 1) {				
@@ -903,10 +817,10 @@ public class Game {
 		 * (Requirement 6.4.0)
 		 */
 		// User chooses to restart
-		else if (choice == 6) {
+		else if (choice == 5) {
 			// Make sure user did not accidentally chose to restart
 			// (Requirement 6.2.0)
-			int areYouSure = areYouSure(choice - 4);
+			int areYouSure = areYouSure(2);
 			
 			// If user wants to restart, restart the game
 			if (areYouSure == 1) {		
@@ -917,11 +831,6 @@ public class Game {
 				// Restart game
 				startGame();
 			}
-		}
-		
-		// User chooses to undo their last draw
-		else if (choice == 7) {
-			undoDraw();
 		}
 	}
 
@@ -1050,25 +959,16 @@ public class Game {
 	}
 
 	/*
-	 * pickACard() is called from playGame(choice): when the user chooses to
-	 * move a card between tableau piles (choice == 2) or to a foundation stack
-	 * (choice == 3)
+	 * pickACard() is called from playGame(choice) when the user picks a card.
+	 * Returns {card, origin} or null. Origin is 0 for a tableau card, 1 for the
+	 * waste top, and 2 for a foundation top. The destination is not chosen here.
 	 */
-	static int[] pickACard(int mode, String shortcutCard, int pile) {
-		// When the user needs to pick a card to move,
-		// allows the user to enter the name of a card
-		// and checks if that card can be moved
-
-		int pickedCardIndex = -1;
+	static int[] pickACard(String shortcutCard) {
 		HashMap<String, Integer> cardsAndCardNames = new HashMap<String, Integer>();
 		int firstCard = -1;
 		int drawnCard = -1;
 		ArrayList<Integer> foundationCards = new ArrayList<Integer>();
 
-		// If a card has been drawn,
-		// the card number and card are placed into a hashmap.
-		// The hashmap is used to check whether or not the card the user
-		// chose can be moved.
 		if (!drawnCards.empty()) {
 			int card = drawnCards.peek();
 			cardsAndCardNames.put(cards[card], card);
@@ -1076,305 +976,155 @@ public class Game {
 		}
 
 		for (int deck = 0; deck < layout.length; deck++) {
-			// Mode 3: moving card to foundation stack
-			// only displays cards at the bottom of the tableau piles
-			// to be chosen
-			if (mode == 3) {
-				// Find the card index for the last card in the tableau pile
-				int cardIndex = layout[deck].size() - 1;
-
-				// If the tableau pile is not empty,
-				// the card index and card are placed into a hashmap,
-				// so the program knows what card the user chose.
-				// This hashmap is used to check whether or not the card the user
-				// chose can be moved.
-				if (cardIndex >= 0) {
-					int card = layout[deck].get(cardIndex);
-					cardsAndCardNames.put(cards[card], card);
-					firstCard = card;
-				}
-
-				// skip the rest of the for loop, which is for Mode 2
-				continue;
-			}
-
-			// Mode 2: moving cards between tableau piles
 			for (int cardIndex = 0; cardIndex < layout[deck].size(); cardIndex++) {
-				// Take card at cardIndex in the tableau pile
 				int card = layout[deck].get(cardIndex);
-
-				// Only face up cards can be moved between tableau piles.
-				// (Requirement 3.1.2)
+				// Only face-up cards can be picked. A face-up card may head a run.
 				if (isFaceUp(card)) {
-					// Place the name of the card and a corresponding card
-					// number into a hashmap, so the program knows what card the user
-					// chose.
-					// This hashmap is used to check whether or not the card the user
-					// chose can be moved.
 					cardsAndCardNames.put(cards[card], card);
 					firstCard = card;
 				}
 			}
 		}
 
-		// Mode 2: moving cards between tableau piles
-		// Include foundation stack cards to be chosen as well
-		if (mode == 2) {
-			for (int checkStack = 0; checkStack < foundationStacks.length; checkStack++) {
-				if (!foundationStacks[checkStack].empty()) {
-					// Place the name of the card and a corresponding card
-					// number into a hashmap, so the program knows what card the user
-					// chose
-					int card = foundationStacks[checkStack].peek();
-					cardsAndCardNames.put(cards[card], card);
-
-					// Add the card to an ArrayList, so the program knows if the
-					// user chose to move a foundation card and can deduct points
-					// accordingly
-					foundationCards.add(card);
-				}
+		for (int checkStack = 0; checkStack < foundationStacks.length; checkStack++) {
+			if (!foundationStacks[checkStack].empty()) {
+				int card = foundationStacks[checkStack].peek();
+				cardsAndCardNames.put(cards[card], card);
+				foundationCards.add(card);
 			}
 		}
-		
+
+		if (firstCard < 0 && drawnCard >= 0) {
+			firstCard = drawnCard;
+		}
+
 		String pickedCard = shortcutCard;
-		
-		/* If the user accidentally enters invalid input, the program should 
+
+		/* If the user accidentally enters invalid input, the program should
 		 * reprompt them for valid input.
 		 * (Requirement 6.1.0)
-		 */			
-		do {
-			// When selecting a card to move, the user is prompted to enter the 
-			// name of a card. (Requirement 5.1.0)
-			
+		 */
+		while (true) {
 			if (pickedCard == null) {
-				// Take the last card from the tableau pile
-				// and output it as an example of how to type the name of a card
-				// when prompting for input from the user
-				if (firstCard > 0) {
-					String firstCardStr = cards[firstCard];
-	
-					if (firstCardStr.charAt(0) == ' ') {
-						firstCardStr = firstCardStr.substring(1);
-					}
-	
-					/* If the user accidentally chose to do something they did 
-					 * not want to within the program, they should be given a 
-					 * simple way to cancel and return to the main Solitaire prompt.
-					 * (Requirement 6.2.0)
-					 */
-					System.out.println("Which card, i.e. \"" + firstCardStr
-							+ "\"? Type \"c\" to cancel.");
+				String example = "AD";
+				if (firstCard >= 0) {
+					example = removeUnnecessarySpace(cards[firstCard]);
 				}
-	
-				// If there are no cards in the tableau piles,
-				// uses "AD" as the example
-				else {
-					System.out.println("Which card, i.e. \"AD\"? Type \"c\" to cancel.");
-				}
-				
-				pickedCard = scanner.nextLine();
+				/* Cancel returns to the main prompt. (Requirement 6.2.0) */
+				System.out.println("Which card, i.e. \"" + example + "\"? Type \"c\" to cancel.");
+
+				pickedCard = scanner.nextLine().trim().toUpperCase();
 				System.out.println();
-	
-				/* All command line input from the user should be case insensitive.
-				 * (Requirement 6.0.0)
-				 */
-				// Convert user input to uppercase, so it is case insensitive
-				pickedCard = pickedCard.toUpperCase();
-	
-				// If the user chose to cancel, end this method
+
 				if (pickedCard.equals("C")) {
 					System.out.println("You chose not to pick a card.");
 					return null;
-				}				
+				}
+			} else {
+				pickedCard = pickedCard.trim().toUpperCase();
 			}
 
 			int length = pickedCard.length();
-
-			// The card name must be 2 characters long
-			// or 3 characters long if it is the 10 of any suit
-			if (length == 2 || length == 3
-					&& pickedCard.substring(0, 2).equals("10")) {
-				// If the card name is 2 characters long,
-				// add a space to the front for comparison in the cards String
-				// array
-				if (length == 2) {
-					pickedCard = " " + pickedCard;
-				}
-
-				// If the card the user requested to move can be moved,
-				// break out of do-while loop
-				if (cardsAndCardNames.containsKey(pickedCard)) {
-					pickedCardIndex = cardsAndCardNames.get(pickedCard);
-					break;
-				}
-
-				/* If the card the user chose is not face up in the tableau pile, 
-				 * or on the top of the drawn cards pile or a foundation stack, 
-				 * the user should be reprompted for a valid card.
-				 * (Requirement 5.1.1) 
-				 */				
-				else {
-					if (isCard(pickedCard)) {
-						// change the message depending on if the user is trying to move
-						// a card to a tableau pile or foundation stack
-						String dest = "";
-						if (mode == 2) {
-							dest = "to tableau pile " + (pile + 1) + ".";
-						} else if (mode == 3) {
-							dest = "to a foundation stack.";
-						}
-						printNotice(removeUnnecessarySpace(pickedCard) + " cannot be moved " + dest);
-						System.out.println("Please enter a card that can be moved.");
-					} else {
-						printNotice("Invalid input. Please enter a card that can be moved.");
+			boolean shaped = length == 2 || (length == 3 && pickedCard.startsWith("10"));
+			if (shaped) {
+				String key = length == 2 ? " " + pickedCard : pickedCard;
+				if (cardsAndCardNames.containsKey(key)) {
+					int pickedCardIndex = cardsAndCardNames.get(key);
+					int drawnFoundation = 0;
+					if (pickedCardIndex == drawnCard) {
+						drawnFoundation = 1;
+					} else if (foundationCards.contains(pickedCardIndex)) {
+						drawnFoundation = 2;
 					}
+					return new int[] { pickedCardIndex, drawnFoundation };
+				}
+				if (isCard(pickedCard)) {
+					printNotice(removeUnnecessarySpace(key) + " cannot be moved.");
+					return null;
 				}
 			}
 
-			// If the card name is not 2 or 3 characters long, the input is
-			// invalid
-			// Reprompt user
-			else {
-				printNotice("Invalid input. Please enter a card that can be moved.");
-			}
-			
+			printNotice("Invalid input. Please enter a card that can be moved.");
 			if (shortcutCard != null) {
 				return null;
 			}
-			
-			System.out.println();			
+			System.out.println();
 			pickedCard = null;
-			
-		} while (true);
-
-		// Check if user chose to move drawn card (not card in a tableau pile)
-		int drawnFoundation = 0;
-		if (pickedCardIndex == drawnCard) {
-			drawnFoundation = 1;
 		}
-
-		// Else, check if the card is a foundation card by looking
-		// through the foundation cards ArrayList
-		else if (foundationCards.contains(pickedCardIndex)) {
-			drawnFoundation = 2;
-		}
-
-		// Return the card and whether it was drawn or from a foundation stack
-		return new int[] { pickedCardIndex, drawnFoundation };
 	}
 
 	// findPile() is called to determine which tableau pile a card being
-	// moved used to belong to from move(), moveToFoundation()
+	// moved used to belong to from move(), moveToFoundation(), and autoDestination()
 	static int findPile(int pickedCard) {
-		// Find which tableau pile a specific card is in by looking
-		// through each tableau pile
 		for (int deck = 0; deck < layout.length; deck++) {
 			if (layout[deck].contains(pickedCard)) {
 				return deck;
 			}
-		}		
-
+		}
 		return -1;
 	}
 
-	// pickPile() is called from playGame(choice): when the user has
-	// chosen to move a card to a tableau pile (choice == 2) and has picked the
-	// card
-	static void pickPile(int pickedCard, int drawnFoundation, int pileNum) {
-		// Allow user to choose which pile they want to move a card to
-		int pickedPile = pileNum;
-		
-		// Keeps track of user canceling
-		boolean cancel = false;
-
-		if (pickedPile < 0) {
-		/* If the user accidentally enters invalid input, the program should 
-		 * reprompt them for valid input.
-		 * (Requirement 6.1.0)
-		 */
-		do {
-			/* If the user accidentally chose to do something they did 
-			 * not want to within the program, they should be given a 
-			 * simple way to cancel and return to the main Solitaire prompt.
-			 * (Requirement 6.2.0)
-			 */
-			// Ask user which pile they want to move the card they picked to
-			// (Requirement 5.1.2)
-			String cardOutput = removeUnnecessarySpace(cards[pickedCard]);
-			System.out.println("Which pile do you want to move "
-					+ cardOutput
-					+ " to? Choose a pile from 1-7.\n"
-					+ "Type \"c\" to cancel.");
-
-			String pile = scanner.nextLine();
-			System.out.println();
-			pile = pile.toLowerCase();
-			
-			if (pile.equals("c")) {
-				cancel = true;
-				break;
-			}
-			
-			try {
-				// Take in user input
-				pickedPile = Integer.parseInt(pile);
-			}
-			// Catch non-numeric input and re-prompt user
-			catch (NumberFormatException nfe) {
-				printNotice("Enter a number from 1-7.");
-				System.out.println();
+	/**
+	 * Where a picked card should go.
+	 * A free card (waste top, or the exposed end of a tableau pile) moves to
+	 * the foundation when that build is legal. Otherwise it moves to the
+	 * leftmost other tableau pile that can take it. The pile the card already
+	 * occupies is never a destination. Returns -2 for the foundation, 0-6 for
+	 * a tableau pile, or -1 when no legal move exists.
+	 */
+	static int autoDestination(int card, int drawnFoundation) {
+		if (canAutoFound(card, drawnFoundation)) {
+			return -2;
+		}
+		int source = drawnFoundation == 0 ? findPile(card) : -1;
+		for (int pile = 0; pile < layout.length; pile++) {
+			if (pile == source) {
 				continue;
 			}
-
-			// Convert pickedPile from 1-indexed to 0-indexed
-			pickedPile--;
-
-			// If entered number is out of range, re-prompt user
-			if (pickedPile < 0 || pickedPile > 6) {
-				printNotice("Enter a number from 1-7.");
-				System.out.println();
-				continue;
+			if (canMove(card, pile)) {
+				return pile;
 			}
-
-		} while (pickedPile < 0 || pickedPile > 6);
 		}
-
-		// User chose to cancel
-		if (cancel) {
-			System.out.println("You chose to cancel.");
-
-			print(0, false);
-
-			return;
-		}
-
-		/* If an invalid move is attempted, the user is notified 
-		 * and returned to the main Solitaire prompt.
-		 * (Requirement 5.3.0)
-		 */
-		// If the card cannot be moved to the picked tableau pile
-		if (!canMove(pickedCard, pickedPile)) {
-			// Notify user
-			String cardOutput = removeUnnecessarySpace(cards[pickedCard]);
-			printNotice(cardOutput + " cannot be placed in pile "
-					+ (pickedPile + 1) + ".");
-
-			// Continue game
-			print(0, false);
-		}
-
-		/* If a valid move is entered, the cards are moved, the 
-		 * new layout is printed on the screen, and the user is 
-		 * prompted for the next move.
-		 * (Requirement 5.2.0)
-		 */
-		// If card can be moved, card is moved
-		else {
-			move(pickedCard, pickedPile, drawnFoundation);
-		}
+		return -1;
 	}
 
-	// canMove() is called from pickPile(): to see if a certain card can be
+	/** Foundation only when the card is free and the next build of its suit. */
+	static boolean canAutoFound(int card, int drawnFoundation) {
+		if (drawnFoundation == 2) {
+			return false;
+		}
+		if (drawnFoundation == 0) {
+			int pile = findPile(card);
+			if (pile < 0) {
+				return false;
+			}
+			ArrayList<Integer> column = layout[pile];
+			if (column.isEmpty() || column.get(column.size() - 1).intValue() != card) {
+				return false;
+			}
+		}
+		return canMoveToFoundation(card);
+	}
+
+	/**
+	 * Move a picked card without asking for a destination. A tableau run moves
+	 * together when the destination is a tableau pile. The board is left
+	 * unchanged when nothing is legal.
+	 */
+	static void autoMove(int card, int drawnFoundation) {
+		int dest = autoDestination(card, drawnFoundation);
+		if (dest == -1) {
+			printNotice(removeUnnecessarySpace(cards[card]) + " cannot be moved.");
+			return;
+		}
+		if (dest == -2) {
+			moveToFoundation(card, drawnFoundation);
+			return;
+		}
+		move(card, dest, drawnFoundation);
+	}
+
+	// canMove() is called from autoDestination(): to see if a certain card can be
 	// moved to a certain pile
 	// Check if a picked card can be moved to a picked pile
 	static boolean canMove(int pickedCard, int pickedPile) {
@@ -2082,7 +1832,7 @@ public class Game {
 		// Offer to draw a card
 		if (!drawPile.empty() || !drawnCards.empty()) {
 			if (AI > 0) {
-				playGame(1, null, -1, true);
+				playGame(1, null, true);
 				hint(AI);
 				return;
 			}
@@ -2173,7 +1923,7 @@ public class Game {
 			}
 			
 			// Hint for user
-			System.out.println("Move " + removeUnnecessarySpace(cards[card]) + " to pile " + (tableauPile2 + 1) + ".");
+			System.out.println("Pick " + removeUnnecessarySpace(cards[card]) + ".");
 			print(0, false);
 			return true;
 		}
@@ -2203,7 +1953,7 @@ public class Game {
 			}
 			
 			// Give the user a hint on how to proceed in the game			
-			System.out.println("Move " + removeUnnecessarySpace(cards[card]) + " to the foundation stack.");
+			System.out.println("Pick " + removeUnnecessarySpace(cards[card]) + ".");
 			print(0, false);
 			return true;
 		}

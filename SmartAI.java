@@ -126,7 +126,7 @@ final class SmartAI {
 		if (move == null) {
 			Game.printNotice("This is going to be a hard game.");
 		} else {
-			Game.printNotice("Hint: " + g.describe(move) + ".");
+			Game.printNotice("Hint: " + g.describePick(move) + ".");
 		}
 		Game.print(0, false);
 	}
