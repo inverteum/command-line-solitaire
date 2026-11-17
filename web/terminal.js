@@ -469,61 +469,18 @@
 	}
 
 	/**
-	 * Move a picked card. Foundation wins. If only one tableau pile can take
-	 * the card, it moves there. If more than one pile can take it, the player
-	 * is asked which pile. A face-up run moves together. Nothing changes when
-	 * no legal move exists or the pile choice is cancelled.
+	 * Move a picked card. Foundation wins. Otherwise the card moves to the
+	 * next legal tableau pile to the right of where it sits, wrapping around
+	 * to the leftmost legal pile. A face-up run moves together. Nothing
+	 * changes when no legal move exists.
 	 */
 	function autoMoveCard(card, loc) {
 		var move = S.autoDestination(game, loc.from, loc.index);
-		if (move && move.kind === S.TO_FOUND) {
-			applyPickedMove(card, loc, move);
-			return;
-		}
-		var dests = S.tableauDestinations(game, loc.from, loc.index);
-		if (!dests.length) {
+		if (!move) {
 			printNotice(bareName(card) + " cannot be moved.");
 			showBoardAndPrompt();
 			return;
 		}
-		if (dests.length === 1) {
-			applyPickedMove(card, loc, {
-				kind: S.TO_TAB,
-				from: loc.from,
-				index: loc.index,
-				to: dests[0]
-			});
-			return;
-		}
-		askTableauPile(card, loc, dests);
-	}
-
-	function askTableauPile(card, loc, dests) {
-		var example = String(dests[0] + 1);
-		println("Which pile, i.e. \"" + example + "\"? Type \"c\" to cancel.");
-		ask(function (raw) {
-			var text = String(raw || "").trim().toUpperCase();
-			if (text === "C") {
-				println("You chose not to move the card.");
-				showBoardAndPrompt();
-				return;
-			}
-			if (/^[1-7]$/.test(text) && dests.indexOf(text.charCodeAt(0) - 49) >= 0) {
-				applyPickedMove(card, loc, {
-					kind: S.TO_TAB,
-					from: loc.from,
-					index: loc.index,
-					to: text.charCodeAt(0) - 49
-				});
-				return;
-			}
-			printNotice("Invalid input. Please enter a pile that the card can be moved to.");
-			println("");
-			askTableauPile(card, loc, dests);
-		});
-	}
-
-	function applyPickedMove(card, loc, move) {
 		S.apply(game, move);
 		if (move.kind === S.TO_FOUND) {
 			println(bareName(card) + " moved to foundation stack. Points +10.");

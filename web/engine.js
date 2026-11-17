@@ -357,9 +357,10 @@
 	}
 
 	/**
-	 * Destination for a picked card when no choice is needed. Foundation wins
-	 * when the card is free (waste top, or the exposed end of a tableau pile).
-	 * Otherwise the leftmost other tableau pile wins. Returns a move, or null
+	 * Destination for a picked card. Foundation wins when the card is free
+	 * (waste top, or the exposed end of a tableau pile). Otherwise the card
+	 * moves to the next legal tableau pile to the right of where it sits,
+	 * wrapping around to the leftmost legal pile. Returns a move, or null
 	 * when nothing is legal.
 	 */
 	function autoDestination(g, from, index) {
@@ -371,7 +372,15 @@
 		}
 		var dests = tableauDestinations(g, from, index);
 		if (!dests.length) return null;
-		return { kind: TO_TAB, from: from, index: index, to: dests[0] };
+		var source = from >= 0 ? from : -1;
+		var dest = dests[0];
+		for (var i = 0; i < dests.length; i++) {
+			if (dests[i] > source) {
+				dest = dests[i];
+				break;
+			}
+		}
+		return { kind: TO_TAB, from: from, index: index, to: dest };
 	}
 
 	function describePick(g, m) {

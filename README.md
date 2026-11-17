@@ -13,7 +13,7 @@ Would you like to draw or pick a card?
 1) draw 2) pick card 3) hint 4) exit 5) restart
 ```
 
-* Draw a card, or pick one by name, for example `AD` for the ace of diamonds. A picked card moves to the foundation when that build is legal. If only one tableau pile can take it, it moves there. If more than one pile can take it, you are asked which pile. A face-up run moves together.
+* Draw a card, or pick one by name, for example `AD` for the ace of diamonds. A picked card moves to the foundation when that build is legal. Otherwise it moves to the leftmost legal tableau pile. If you pick the same card again, it moves to the next legal pile to the right, wrapping around. A face-up run moves together.
 * Score changes with the usual actions, such as moving a card to a foundation, restarting the draw pile, or revealing a tableau card
 * Hint names the card to pick, for example `Pick 6S`, or tells you to draw
 * Autocomplete when the game is clearly won (all tableau cards are face up, and the draw and waste piles are empty)

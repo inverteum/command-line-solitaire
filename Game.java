@@ -765,8 +765,8 @@ public class Game {
 		}
 
 		// User picks a card. A legal foundation build is taken when one exists.
-		// Otherwise, if only one tableau pile can take it, the card moves there.
-		// If more than one pile can take it, the user is asked which pile.
+		// Otherwise the card moves to the next legal tableau pile to the right
+		// of where it sits, wrapping around to the leftmost legal pile.
 		else if (choice == 2) {
 			int[] result = pickACard(shortcutCard);
 
@@ -1084,21 +1084,38 @@ public class Game {
 	}
 
 	/**
-	 * Where a picked card should go when no choice is needed.
-	 * A free card (waste top, or the exposed end of a tableau pile) moves to
-	 * the foundation when that build is legal. Otherwise it moves to the
-	 * leftmost other tableau pile that can take it. Returns -2 for the
+	 * Next legal tableau pile to the right of the card's current pile,
+	 * wrapping around to the leftmost legal pile. Cards from the waste or a
+	 * foundation start at the leftmost legal pile. Returns 0-6, or -1 when
+	 * no legal tableau move exists.
+	 */
+	static int nextTableauPile(int card, int drawnFoundation) {
+		ArrayList<Integer> dests = tableauDestinations(card, drawnFoundation);
+		if (dests.isEmpty()) {
+			return -1;
+		}
+		int source = drawnFoundation == 0 ? findPile(card) : -1;
+		for (int i = 0; i < dests.size(); i++) {
+			int pile = dests.get(i);
+			if (pile > source) {
+				return pile;
+			}
+		}
+		return dests.get(0);
+	}
+
+	/**
+	 * Where a picked card should go. A free card (waste top, or the exposed
+	 * end of a tableau pile) moves to the foundation when that build is legal.
+	 * Otherwise it moves to the next legal tableau pile to the right of where
+	 * it sits, wrapping around to the leftmost legal pile. Returns -2 for the
 	 * foundation, 0-6 for a tableau pile, or -1 when no legal move exists.
 	 */
 	static int autoDestination(int card, int drawnFoundation) {
 		if (canAutoFound(card, drawnFoundation)) {
 			return -2;
 		}
-		ArrayList<Integer> dests = tableauDestinations(card, drawnFoundation);
-		if (dests.isEmpty()) {
-			return -1;
-		}
-		return dests.get(0);
+		return nextTableauPile(card, drawnFoundation);
 	}
 
 	/** Foundation only when the card is free and the next build of its suit. */
@@ -1121,53 +1138,21 @@ public class Game {
 
 	/**
 	 * Move a picked card. A legal foundation build is taken when one exists.
-	 * If only one tableau pile can take the card, it moves there. If more
-	 * than one pile can take it, the user is asked which pile. A tableau
-	 * run moves together. The board is left unchanged when nothing is legal
-	 * or the user cancels the pile choice.
+	 * Otherwise the card moves to the next legal tableau pile to the right of
+	 * where it sits, wrapping around to the leftmost legal pile. A tableau
+	 * run moves together. The board is left unchanged when nothing is legal.
 	 */
 	static void autoMove(int card, int drawnFoundation) {
-		if (canAutoFound(card, drawnFoundation)) {
-			moveToFoundation(card, drawnFoundation);
-			return;
-		}
-		ArrayList<Integer> dests = tableauDestinations(card, drawnFoundation);
-		if (dests.isEmpty()) {
+		int dest = autoDestination(card, drawnFoundation);
+		if (dest == -1) {
 			printNotice(removeUnnecessarySpace(cards[card]) + " cannot be moved.");
 			return;
 		}
-		int dest = dests.get(0);
-		if (dests.size() > 1) {
-			dest = askTableauPile(dests);
-			if (dest < 0) {
-				return;
-			}
+		if (dest == -2) {
+			moveToFoundation(card, drawnFoundation);
+			return;
 		}
 		move(card, dest, drawnFoundation);
-	}
-
-	/**
-	 * Ask which legal tableau pile to use. Returns 0-6, or -1 if cancelled.
-	 */
-	static int askTableauPile(ArrayList<Integer> dests) {
-		String example = Integer.toString(dests.get(0) + 1);
-		while (true) {
-			System.out.println("Which pile, i.e. \"" + example + "\"? Type \"c\" to cancel.");
-			String raw = scanner.nextLine().trim().toUpperCase();
-			System.out.println();
-			if (raw.equals("C")) {
-				System.out.println("You chose not to move the card.");
-				return -1;
-			}
-			if (raw.length() == 1 && raw.charAt(0) >= '1' && raw.charAt(0) <= '7') {
-				int pile = raw.charAt(0) - '1';
-				if (dests.contains(Integer.valueOf(pile))) {
-					return pile;
-				}
-			}
-			printNotice("Invalid input. Please enter a pile that the card can be moved to.");
-			System.out.println();
-		}
 	}
 
 	// canMove() is called from autoDestination(): to see if a certain card can be
